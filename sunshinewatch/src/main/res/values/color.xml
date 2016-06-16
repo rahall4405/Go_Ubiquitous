@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-        <color name="digital_date">#BBCEFA</color>
+        <color name="digital_date">#77ddFA</color>
         <color name="digital_am_pm">#aaaaa0</color>
         <color name="digital_colons">#aaaaa0</color>
         <color name="config_activity_background">#ffffff</color>

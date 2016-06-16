@@ -178,7 +178,9 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         float mXOffset;
         float mXOffsetLine2;
         float mXOffsetLine3;
+        float mXOffsetFomIcon;
         float mYOffset;
+        float mYOffset2;
         float mLineHeight;
         String mAmString;
         String mPmString;
@@ -218,6 +220,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                     .setShowSystemUiTime(false)
                     .build());
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+            mYOffset2 = resources.getDimension(R.dimen.digital_y2_offset);
             mLineHeight = resources.getDimension(R.dimen.digital_line_height);
             mAmString = resources.getString(R.string.digital_am);
             mPmString = resources.getString(R.string.digital_pm);
@@ -237,7 +240,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             mCalendar = Calendar.getInstance();
             mDate = new Date();
             mWeatherIcon = BitmapFactory.decodeResource(getResources(), R.drawable.ic_clear);
-            mWeatherIconScaled = Bitmap.createScaledBitmap(mWeatherIcon,90,90,true);
+            mWeatherIconScaled = Bitmap.createScaledBitmap(mWeatherIcon,85,85,true);
             mWeatherIconScaledAmbient = DigitalWatchFaceUtil.createGrayScaleBackgroundBitmap(mWeatherIconScaled);
             initFormats();
         }
@@ -332,6 +335,8 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                     ? R.dimen.digital_x2_offset_round : R.dimen.digital_x2_offset);
             mXOffsetLine3 = resources.getDimension(isRound
                     ? R.dimen.digital_x3_offset_round : R.dimen.digital_x3_offset);
+            mXOffsetFomIcon = resources.getDimension(isRound
+                    ? R.dimen.digital_from_icon_offset_round : R.dimen.digital_from_icon_offset);
             float textSize = resources.getDimension(isRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
             float dateTextSize = resources.getDimension(isRound
@@ -348,7 +353,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             mMinutePaint.setTextSize(textSize);
 
             mColonPaint.setTextSize(textSize);
-            mCommaPaint.setTextSize(textSize);
+            mCommaPaint.setTextSize(dateTextSize);
             mSpacePaint.setTextSize(tempTextSize);
 
             mColonWidth = mColonPaint.measureText(COLON_STRING);
@@ -551,34 +556,36 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             if (getPeekCardPosition().isEmpty()) {
                 // Day of week
                 String dayString =  mDayOfWeekFormat.format(mDate);
+                dayString = dayString.toUpperCase();
                 canvas.drawText(
                         dayString,
-                        mXOffsetLine2, mYOffset + mLineHeight +20, mDatePaint);
+                        mXOffsetLine2, mYOffset + mLineHeight , mDatePaint);
                 x = mXOffsetLine2 + mDatePaint.measureText(dayString);
-                canvas.drawText(COMMA_STRING,x,mYOffset + mLineHeight+20,mCommaPaint);
+                canvas.drawText(COMMA_STRING,x,mYOffset + mLineHeight,mCommaPaint);
                 x+= mCommaWidth;
 
                 // Date
                 String calendarString = mCalendarFormat.format(mDate);
+                calendarString = calendarString.toUpperCase() ;
                 canvas.drawText(
                         calendarString,
-                        x, mYOffset + mLineHeight +20, mDatePaint);
+                        x, mYOffset + mLineHeight , mDatePaint);
                 x = mXOffsetLine3;
                 canvas.drawText(LINE_STRING
-                        , x, mYOffset + 2*mLineHeight +20, mDatePaint);
+                        , x, mYOffset + 2*mLineHeight, mDatePaint);
                 // Weather Image
                 //High and Low temps
                 x=mXOffsetLine2;
                 if(isInAmbientMode()) {
-                    canvas.drawBitmap(mWeatherIconScaledAmbient,x,mYOffset + 3*mLineHeight -20, new Paint());
+                    canvas.drawBitmap(mWeatherIconScaledAmbient,x,mYOffset + 2*mLineHeight +mYOffset2, new Paint());
                 } else {
-                    canvas.drawBitmap(mWeatherIconScaled,x,mYOffset + 3*mLineHeight -20,new Paint());
+                    canvas.drawBitmap(mWeatherIconScaled,x,mYOffset + 2*mLineHeight + mYOffset2,new Paint());
                 }
                 String highTemp = "25" + DEGREES;
-                canvas.drawText(highTemp,x + 90 ,mYOffset + 4*mLineHeight, mHighTemp);
-                canvas.drawText(SPACE_STRING,x+90 +mHighTemp.measureText(highTemp),mYOffset + 4*mLineHeight,mSpacePaint);
+                canvas.drawText(highTemp,x + mXOffsetFomIcon ,mYOffset + 4*mLineHeight, mHighTemp);
+                canvas.drawText(SPACE_STRING,x + mXOffsetFomIcon + mHighTemp.measureText(highTemp),mYOffset + 4*mLineHeight,mSpacePaint);
                 String lowTemp = "16" + DEGREES;
-                canvas.drawText(lowTemp,x + 90 +mSpaceWidth + mHighTemp.measureText(highTemp),mYOffset + 4*mLineHeight, mLowTemp);
+                canvas.drawText(lowTemp,x + mXOffsetFomIcon + mSpaceWidth + mHighTemp.measureText(highTemp),mYOffset + 4*mLineHeight, mLowTemp);
 
             }
 
