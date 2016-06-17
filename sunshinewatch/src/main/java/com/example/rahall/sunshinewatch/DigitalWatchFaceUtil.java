@@ -68,6 +68,16 @@ public final class DigitalWatchFaceUtil {
     public static final String PATH_WITH_FEATURE = "/watch_face_config/Digital";
 
     /**
+     * THe path for sunshine weather data
+     */
+    public static final String DATA_PATH = "/sunshine/Data";
+
+    /**
+     * The path for weather request message
+     */
+    public static final String NEW_WEATHERDATA = "/sunshine/NewData";
+
+    /**
      * Name of the default interactive mode background color and the ambient mode background color.
      */
     public static final String COLOR_AMBIENT_BACKGROUND = "Black";
