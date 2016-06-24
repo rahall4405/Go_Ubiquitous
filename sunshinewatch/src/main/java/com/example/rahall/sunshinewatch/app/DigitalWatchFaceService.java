@@ -45,6 +45,7 @@ import android.view.WindowInsets;
 import com.google.android.gms.common.ConnectionResult;
 
 
+import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.DataApi.DataListener;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
@@ -259,7 +260,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             mWeatherIcon = BitmapFactory.decodeResource(getResources(), R.drawable.ic_clear);
             mWeatherIconScaled = Bitmap.createScaledBitmap(mWeatherIcon,85,85,true);
             mWeatherIconScaledAmbient = DigitalWatchFaceUtil.createGrayScaleBackgroundBitmap(mWeatherIconScaled);
-
+            requestNewWeatherData();
 
             initFormats();
         }
@@ -679,7 +680,16 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             }
         }
 
+        private void requestNewWeatherData() {
+            Wearable.MessageApi.sendMessage(mGoogleApiClient, "", DigitalWatchFaceUtil.NEW_WEATHERDATA, null)
+                    .setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
+                        @Override
+                        public void onResult(MessageApi.SendMessageResult sendMessageResult) {
+                            Log.d(TAG, "New weatherData:" + sendMessageResult.getStatus());
+                        }
+                    });
 
+        }
 
 
     }
