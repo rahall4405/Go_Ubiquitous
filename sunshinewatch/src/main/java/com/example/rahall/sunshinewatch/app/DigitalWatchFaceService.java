@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.rahall.sunshinewatch;
+package com.example.rahall.sunshinewatch.app;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -28,6 +28,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.PaintDrawable;
+
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -42,9 +43,12 @@ import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
 import com.google.android.gms.common.ConnectionResult;
+
+
+import com.google.android.gms.wearable.DataApi.DataListener;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
+import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataItem;
@@ -87,8 +91,8 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         return new Engine();
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine implements DataApi.DataListener,
-            GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+    private class Engine extends CanvasWatchFaceService.Engine implements DataListener,
+            ConnectionCallbacks, OnConnectionFailedListener {
         static final String COLON_STRING = ":";
         static final String COMMA_STRING = ", ";
         static final String SPACE_STRING = " ";
@@ -127,11 +131,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             }
         };
 
-        GoogleApiClient mGoogleApiClient = new GoogleApiClient.Builder(DigitalWatchFaceService.this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(Wearable.API)
-                .build();
+
 
         /**
          * Handles time zone and locale changes.
@@ -200,10 +200,10 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         Bitmap mWeatherIconScaled;
         Bitmap mWeatherIconScaledAmbient;
         int  mWeatherId;
-        String mTempHigh;
-        String mTempLow;
+        String mTempHigh = "25"+ DEGREES;
+        String mTempLow = "16"+ DEGREES;
 
-
+        GoogleApiClient mGoogleApiClient;
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -213,19 +213,28 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
 
         @Override
         public void onCreate(SurfaceHolder holder) {
-            Resources resources = DigitalWatchFaceService.this.getResources();
-            mInteractiveBackgroundColor = resources.getColor(R.color.primary);
-            mInteractiveCalendarDate = resources.getColor(R.color.digital_date);
             if (Log.isLoggable(TAG, Log.DEBUG)) {
                 Log.d(TAG, "onCreate");
             }
             super.onCreate(holder);
+            Resources resources = DigitalWatchFaceService.this.getResources();
+            mInteractiveBackgroundColor = resources.getColor(R.color.primary);
+            mInteractiveCalendarDate = resources.getColor(R.color.digital_date);
+
+
 
             setWatchFaceStyle(new WatchFaceStyle.Builder(DigitalWatchFaceService.this)
                     .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
                     .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
                     .setShowSystemUiTime(false)
                     .build());
+            mGoogleApiClient = new GoogleApiClient.Builder(DigitalWatchFaceService.this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(Wearable.API)
+                    .build();
+
+            mGoogleApiClient.connect();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
             mYOffset2 = resources.getDimension(R.dimen.digital_y2_offset);
             mLineHeight = resources.getDimension(R.dimen.digital_line_height);
@@ -242,6 +251,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             mCommaPaint = createTextPaint(resources.getColor(R.color.digital_date));
             mSpacePaint = createTextPaint(resources.getColor(R.color.digital_date));
             mLinePaint = createTextPaint(resources.getColor(R.color.digital_date));
+
            mHighTemp = createTextPaint(mInteractiveHourDigitsColor);
            mLowTemp = createTextPaint(resources.getColor(R.color.digital_date));
             mCalendar = Calendar.getInstance();
@@ -249,7 +259,8 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             mWeatherIcon = BitmapFactory.decodeResource(getResources(), R.drawable.ic_clear);
             mWeatherIconScaled = Bitmap.createScaledBitmap(mWeatherIcon,85,85,true);
             mWeatherIconScaledAmbient = DigitalWatchFaceUtil.createGrayScaleBackgroundBitmap(mWeatherIconScaled);
-            requestNewWeatherData();
+
+
             initFormats();
         }
 
@@ -289,10 +300,6 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             } else {
                 unregisterReceiver();
 
-                if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
-                    Wearable.DataApi.removeListener(mGoogleApiClient, this);
-                    mGoogleApiClient.disconnect();
-                }
             }
 
             // Whether the timer should be running depends on whether we're visible (as well as
@@ -330,7 +337,9 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         @Override
         public void onApplyWindowInsets(WindowInsets insets) {
             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "onApplyWindowInsets: " + (insets.isRound() ? "round" : "square"));
+
+                    Log.d(TAG, "onApplyWindowInsets: " + (insets.isRound() ? "round" : "square"));
+
             }
             super.onApplyWindowInsets(insets);
 
@@ -482,30 +491,11 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             }
         }
 
-        private void updatePaintIfInteractive(Paint paint, int interactiveColor) {
-            if (!isInAmbientMode() && paint != null) {
-                paint.setColor(interactiveColor);
-            }
-        }
 
-        private void setInteractiveBackgroundColor(int color) {
-            mInteractiveBackgroundColor = color;
-            updatePaintIfInteractive(mBackgroundPaint, color);
-        }
 
-        private void setInteractiveHourDigitsColor(int color) {
-            mInteractiveHourDigitsColor = color;
-            updatePaintIfInteractive(mHourPaint, color);
-        }
 
-        private void setInteractiveMinuteDigitsColor(int color) {
-            mInteractiveMinuteDigitsColor = color;
-            updatePaintIfInteractive(mMinutePaint, color);
-        }
 
-        private void setInteractiveCalendarColor(int color) {
 
-        }
 
 
 
@@ -589,10 +579,10 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                 } else {
                     canvas.drawBitmap(mWeatherIconScaled,x,mYOffset + 2*mLineHeight + mYOffset2,new Paint());
                 }
-                String highTemp = "25" + DEGREES;
+                String highTemp = mTempHigh;
                 canvas.drawText(highTemp,x + mXOffsetFomIcon ,mYOffset + 4*mLineHeight, mHighTemp);
                 canvas.drawText(SPACE_STRING,x + mXOffsetFomIcon + mHighTemp.measureText(highTemp),mYOffset + 4*mLineHeight,mSpacePaint);
-                String lowTemp = "16" + DEGREES;
+                String lowTemp = mTempLow;
                 canvas.drawText(lowTemp,x + mXOffsetFomIcon + mSpaceWidth + mHighTemp.measureText(highTemp),mYOffset + 4*mLineHeight, mLowTemp);
 
             }
@@ -621,118 +611,21 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             return isVisible() && !isInAmbientMode();
         }
 
-       /* private void updateConfigDataItemAndUiOnStartup() {
-            DigitalWatchFaceUtil.fetchConfigDataMap(mGoogleApiClient,
-                    new DigitalWatchFaceUtil.FetchConfigDataMapCallback() {
-                        @Override
-                        public void onConfigDataMapFetched(DataMap startupConfig) {
-                            // If the DataItem hasn't been created yet or some keys are missing,
-                            // use the default values.
-                            setDefaultValuesForMissingConfigKeys(startupConfig);
-                            DigitalWatchFaceUtil.putConfigDataItem(mGoogleApiClient, startupConfig);
-
-                            updateUiForConfigDataMap(startupConfig);
-                        }
-                    }
-            );
-        }*/
-
-        private void setDefaultValuesForMissingConfigKeys(DataMap config) {
-            addIntKeyIfMissing(config, DigitalWatchFaceUtil.KEY_BACKGROUND_COLOR,
-                    DigitalWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_BACKGROUND);
-            addIntKeyIfMissing(config, DigitalWatchFaceUtil.KEY_HOURS_COLOR,
-                    DigitalWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_HOUR_DIGITS);
-            addIntKeyIfMissing(config, DigitalWatchFaceUtil.KEY_MINUTES_COLOR,
-                    DigitalWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_MINUTE_DIGITS);
-            addIntKeyIfMissing(config, DigitalWatchFaceUtil.KEY_SECONDS_COLOR,
-                    DigitalWatchFaceUtil.COLOR_VALUE_AMBIENT_CALENDAR);
-        }
-
-        private void addIntKeyIfMissing(DataMap config, String key, int color) {
-            if (!config.containsKey(key)) {
-                config.putInt(key, color);
-            }
-        }
-
-        @Override // DataApi.DataListener
-        public void onDataChanged(DataEventBuffer dataEvents) {
-            for (DataEvent dataEvent : dataEvents) {
-                if (dataEvent.getType() != DataEvent.TYPE_CHANGED) {
-                    continue;
-                }
-
-                DataItem dataItem = dataEvent.getDataItem();
-                if (!dataItem.getUri().getPath().equals(
-                        DigitalWatchFaceUtil.NEW_WEATHERDATA)) {
-                    continue;
-                }
-
-                DataMapItem dataMapItem = DataMapItem.fromDataItem(dataItem);
-                DataMap config = dataMapItem.getDataMap();
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Config DataItem updated:" + config);
-                }
-                String weatherString = config.getString("day1");
-                String[] wParts = weatherString.split("|");
-                mWeatherId = Integer.parseInt(wParts[0]);
-                mWeatherIcon = BitmapFactory.decodeResource(
-                        getResources(),
-                        DigitalWatchFaceUtil.getIconResourceForWeatherCondition(mWeatherId));
-                mWeatherIconScaled = Bitmap.createScaledBitmap(mWeatherIcon,85,85,true);
-                mWeatherIconScaledAmbient = DigitalWatchFaceUtil.createGrayScaleBackgroundBitmap(mWeatherIconScaled);
-                mTempHigh = wParts[1];
-                mTempLow = wParts[2];
 
 
-            }
-        }
 
-      /*  private void updateUiForConfigDataMap(final DataMap config) {
-            boolean uiUpdated = false;
-            for (String configKey : config.keySet()) {
-                if (!config.containsKey(configKey)) {
-                    continue;
-                }
-                int color = config.getInt(configKey);
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Found watch face config key: " + configKey + " -> "
-                            + Integer.toHexString(color));
-                }
-                if (updateUiForKey(configKey, color)) {
-                    uiUpdated = true;
-                }
-            }
-            if (uiUpdated) {
-                invalidate();
-            }
-        }*/
 
-        /**
-         * Updates the color of a UI item according to the given {@code configKey}. Does nothing if
-         * {@code configKey} isn't recognized.
-         *
-         * @return whether UI has been updated
-         */
-        private boolean updateUiForKey(String configKey, int color) {
-            if (configKey.equals(DigitalWatchFaceUtil.KEY_BACKGROUND_COLOR)) {
-                setInteractiveBackgroundColor(color);
-            } else if (configKey.equals(DigitalWatchFaceUtil.KEY_HOURS_COLOR)) {
-                setInteractiveHourDigitsColor(color);
-            } else if (configKey.equals(DigitalWatchFaceUtil.KEY_MINUTES_COLOR)) {
-                setInteractiveMinuteDigitsColor(color);
-            } else {
-                Log.w(TAG, "Ignoring unknown config key: " + configKey);
-                return false;
-            }
-            return true;
-        }
+
+
+
+
 
         @Override
         public void onConnected(@Nullable Bundle connectionHint) {
-            if (Log.isLoggable(TAG, Log.DEBUG)) {
+
                 Log.d(TAG, "onConnected: " + connectionHint);
-            }
-            Wearable.DataApi.addListener(mGoogleApiClient, Engine.this);
+
+            Wearable.DataApi.addListener(mGoogleApiClient, this);
         }
 
         @Override
@@ -749,38 +642,45 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             }
         }
 
-        private void requestNewWeatherData() {
-            Wearable.MessageApi.sendMessage(mGoogleApiClient, "", DigitalWatchFaceUtil.NEW_WEATHERDATA, null)
-                    .setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
-                        @Override
-                        public void onResult(MessageApi.SendMessageResult sendMessageResult) {
-                            Log.d(TAG, "New weatherData:" + sendMessageResult.getStatus());
-                        }
-                    });
+        @Override // DataApi.DataListener
+        public void onDataChanged(DataEventBuffer dataEvents) {
+            Log.d(TAG, "Got to onDataChanged");
+            for (DataEvent dataEvent : dataEvents) {
+                if (dataEvent.getType() != DataEvent.TYPE_CHANGED) {
+                    continue;
+                }
+                Log.d(TAG, "Got to onDataChanged 2");
+                DataItem dataItem = dataEvent.getDataItem();
+                Log.d(TAG, "Got to onDataChanged 3" + dataItem.getUri().getPath());
 
+
+                DataMapItem dataMapItem = DataMapItem.fromDataItem(dataItem);
+                DataMap config = dataMapItem.getDataMap();
+
+                String weatherString = config.getString("day1");
+
+                Log.d(TAG, "Got to onDataChanged 4 " + weatherString);
+                String[] wParts = weatherString.split("\\|");
+                Log.d(TAG, "Got to onDataChanged 5 " + wParts[0]);
+
+                mWeatherId = Integer.parseInt(wParts[0]);
+                mWeatherIcon = BitmapFactory.decodeResource(
+                        getResources(),
+                        DigitalWatchFaceUtil.getIconResourceForWeatherCondition(mWeatherId));
+                mWeatherIconScaled = Bitmap.createScaledBitmap(mWeatherIcon,85,85,true);
+                mWeatherIconScaledAmbient = DigitalWatchFaceUtil.createGrayScaleBackgroundBitmap(mWeatherIconScaled);
+
+                mTempHigh = wParts[1];
+
+                mTempLow = wParts[2];
+                Log.d(TAG, "Got to onDataChanged 5 " + mWeatherId + mTempHigh + mTempLow);
+                invalidate();
+
+            }
         }
 
-       /* @Override  // GoogleApiClient.ConnectionCallbacks
-        public void onConnected(Bundle connectionHint) {
-            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "onConnected: " + connectionHint);
-            }
-            Wearable.DataApi.addListener(mGoogleApiClient, Engine.this);
-            updateConfigDataItemAndUiOnStartup();
-        }
 
-        @Override  // GoogleApiClient.ConnectionCallbacks
-        public void onConnectionSuspended(int cause) {
-            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "onConnectionSuspended: " + cause);
-            }
-        }
 
-        @Override  // GoogleApiClient.OnConnectionFailedListener
-        public void onConnectionFailed(ConnectionResult result) {
-            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "onConnectionFailed: " + result);
-            }
-        }*/
+
     }
 }

@@ -7,4 +7,6 @@
     <string name="digital_am">AM</string>
     <string name="digital_pm">PM</string>
     <string name="watchface_name">Sunshine</string>
+    <string name="my_digital_name">Sunshine</string>
+    <string name="title_activity_main">MainActivity</string>
 </resources>

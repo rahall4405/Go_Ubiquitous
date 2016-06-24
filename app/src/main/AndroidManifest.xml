@@ -36,7 +36,10 @@
         android:protectionLevel="signature" />
 
     <uses-permission android:name="com.example.android.sunshine.app.permission.C2D_MESSAGE" />
+    <!-- Permissions required by the wearable app -->
 
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    />
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -179,11 +182,13 @@
         </service>
         <service
             android:name=".gcm.RegistrationIntentService"
-            android:exported="false"></service>
-        <service
-            android:name=".sync.WearableUpdateService"
-            android:enabled="true"
-            android:exported="true"></service>
+            android:exported="false" />
+
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+
     </application>
 
 </manifest>

@@ -8,6 +8,7 @@ import android.util.Log;
 public class SunshineSyncService extends Service {
     private static final Object sSyncAdapterLock = new Object();
     private static SunshineSyncAdapter sSunshineSyncAdapter = null;
+    
 
     @Override
     public void onCreate() {
@@ -16,6 +17,9 @@ public class SunshineSyncService extends Service {
             if (sSunshineSyncAdapter == null) {
                 sSunshineSyncAdapter = new SunshineSyncAdapter(getApplicationContext(), true);
             }
+            /*if (sWearUpdateService == null) {
+                sWearUpdateService = new WearableUpdateService();
+            }*/
         }
     }
 
