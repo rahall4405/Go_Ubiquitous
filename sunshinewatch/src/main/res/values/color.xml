@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-        <color name="digital_date">#77ddFA</color>
+        <color name="digital_date">#ffff00</color>
         <color name="digital_am_pm">#aaaaa0</color>
         <color name="digital_colons">#aaaaa0</color>
         <color name="config_activity_background">#ffffff</color>
@@ -11,6 +11,6 @@
 
         <color name="primary_text">#212121</color>
         <color name="secondary_text">#727272</color>
-        <color name="primary">#03A9F4</color>
+        <color name="primary">#03a9f4</color>
 
 </resources>

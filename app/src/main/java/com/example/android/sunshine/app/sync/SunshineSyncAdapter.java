@@ -68,6 +68,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -83,7 +84,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
             "com.example.android.sunshine.app.ACTION_DATA_UPDATED";
     // Interval at which to sync with the weather, in seconds.
     // 60 seconds (1 minute) * 180 = 3 hours
-    public static final int SYNC_INTERVAL = 60*60;
+    public static final int SYNC_INTERVAL = 60;
     public static final int SYNC_FLEXTIME = SYNC_INTERVAL/3;
     private static final long DAY_IN_MILLIS = 1000 * 60 * 60 * 24;
     private static final int WEATHER_NOTIFICATION_ID = 3004;
@@ -338,7 +339,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
 
             // now we work exclusively in UTC
             dayTime = new Time();
-
+            ArrayList<WatchData> watchDataArray = new ArrayList<>();
             for(int i = 0; i < weatherArray.length(); i++) {
                 // These are the values that will be collected.
                 long dateTime;
@@ -349,6 +350,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
 
                 double high;
                 double low;
+                WatchData watchData = new WatchData();
 
                 String description;
                 int weatherId;
@@ -391,10 +393,16 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID, weatherId);
 
                 cVVector.add(weatherValues);
-                if (i==0) {
+                watchData.setHigh(high);
+                watchData.setLow(low);
+                watchData.setWeatherId(weatherId);
+                watchDataArray.add(i,watchData);
+                /*if (i==0) {
                     sendWatchData(high,low,weatherId);
-                }
+                }*/
             }
+            sendWatchActivityData(watchDataArray);
+
 
             int inserted = 0;
             // add to database
@@ -423,8 +431,50 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
         }
     }
 
+    private void sendWatchActivityData(ArrayList<WatchData> watchData) {
+        String PATH_ACTIVITY_DATA = "/sunshine/ActivityData";
+        GoogleApiClient googleApiClient = new GoogleApiClient.Builder(getContext())
+                .addApi(Wearable.API)
+                .build();
+
+        // Get result of Google API Client Connection
+        ConnectionResult connectionResult = googleApiClient.blockingConnect(30, TimeUnit.SECONDS);
+        if (!connectionResult.isSuccess()) {
+            return;
+        }
+        ArrayList<String> weatherData = new ArrayList<>();
+        for(WatchData data: watchData) {
+            String sHigh = Utility.formatTemperature(getContext(),data.getHigh());
+            String sLow = Utility.formatTemperature(getContext(),data.getLow());
+            String dataString = data.getWeatherId() + "|" + sHigh + "|" + sLow;
+            weatherData.add(dataString);
+        }
+
+
+
+
+        PutDataMapRequest putDataMapReq = PutDataMapRequest.create(PATH_ACTIVITY_DATA).setUrgent();
+        //putDataMapReq.getDataMap().putString("day1", data);
+        putDataMapReq.getDataMap().putStringArrayList("WeatherData", weatherData);
+        putDataMapReq.getDataMap().putLong("timestamp",System.currentTimeMillis());
+        PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
+        Wearable.DataApi.putDataItem(googleApiClient, putDataReq).setResultCallback(new ResultCallbacks<DataApi.DataItemResult>() {
+            @Override
+            public void onSuccess(@NonNull DataApi.DataItemResult dataItemResult) {
+                Log.d(LOG_TAG,"Data sent successfully");
+            }
+
+            @Override
+            public void onFailure(@NonNull Status status) {
+                Log.d(LOG_TAG,"Data send failure");
+            }
+        });
+        Log.d("Watch data","Sent Watch Data!");
+    }
+
     private void sendWatchData(double high, double low, int weatherId) {
         String PATH_DATA = "/sunshine/Data";
+
         GoogleApiClient googleApiClient = new GoogleApiClient.Builder(getContext())
                 .addApi(Wearable.API)
                 .build();
@@ -441,6 +491,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
         String data = weatherId + "|" + sHigh + "|" + sLow;
         PutDataMapRequest putDataMapReq = PutDataMapRequest.create(PATH_DATA).setUrgent();
         putDataMapReq.getDataMap().putString("day1", data);
+
         putDataMapReq.getDataMap().putLong("timestamp",System.currentTimeMillis());
         PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
         Wearable.DataApi.putDataItem(googleApiClient, putDataReq).setResultCallback(new ResultCallbacks<DataApi.DataItemResult>() {

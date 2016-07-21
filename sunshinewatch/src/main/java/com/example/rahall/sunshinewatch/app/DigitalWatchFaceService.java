@@ -46,6 +46,7 @@ import com.google.android.gms.common.ConnectionResult;
 
 
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataApi.DataListener;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
@@ -59,6 +60,7 @@ import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Wearable;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -156,6 +158,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         Paint mDatePaint;
         Paint mHourPaint;
         Paint mMinutePaint;
+        Paint mAmPmPaint;
         Paint mLowTemp;
         Paint mHighTemp;
 
@@ -203,6 +206,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         int  mWeatherId;
         String mTempHigh = "25"+ DEGREES;
         String mTempLow = "16"+ DEGREES;
+        boolean mTimeType = false;
 
         GoogleApiClient mGoogleApiClient;
 
@@ -247,6 +251,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             mDatePaint = createTextPaint(resources.getColor(R.color.digital_date));
             mHourPaint = createTextPaint(mInteractiveHourDigitsColor, BOLD_TYPEFACE);
             mMinutePaint = createTextPaint(mInteractiveMinuteDigitsColor);
+            mAmPmPaint = createTextPaint(mInteractiveMinuteDigitsColor);
 
             mColonPaint = createTextPaint(mInteractiveHourDigitsColor);
             mCommaPaint = createTextPaint(resources.getColor(R.color.digital_date));
@@ -260,7 +265,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             mWeatherIcon = BitmapFactory.decodeResource(getResources(), R.drawable.ic_clear);
             mWeatherIconScaled = Bitmap.createScaledBitmap(mWeatherIcon,85,85,true);
             mWeatherIconScaledAmbient = DigitalWatchFaceUtil.createGrayScaleBackgroundBitmap(mWeatherIconScaled);
-            requestNewWeatherData();
+            DigitalWatchFaceUtil.requestNewWeatherData(mGoogleApiClient);
 
             initFormats();
         }
@@ -369,6 +374,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             mHighTemp.setTextSize(tempTextSize);
             mHourPaint.setTextSize(textSize);
             mMinutePaint.setTextSize(textSize);
+            mAmPmPaint.setTextSize(textSize);
 
             mColonPaint.setTextSize(textSize);
             mCommaPaint.setTextSize(dateTextSize);
@@ -417,6 +423,8 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                     DigitalWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_HOUR_DIGITS);
             adjustPaintColorToCurrentMode(mMinutePaint,  DigitalWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_MINUTE_DIGITS,
                     mInteractiveMinuteDigitsColor);
+            adjustPaintColorToCurrentMode(mAmPmPaint,  DigitalWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_MINUTE_DIGITS,
+                    mInteractiveMinuteDigitsColor);
             adjustPaintColorToCurrentMode(mDatePaint, DigitalWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_MINUTE_DIGITS,
                     mInteractiveCalendarDate);
             adjustPaintColorToCurrentMode(mLinePaint,DigitalWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_MINUTE_DIGITS,
@@ -434,6 +442,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                 mDatePaint.setAntiAlias(antiAlias);
                 mHourPaint.setAntiAlias(antiAlias);
                 mMinutePaint.setAntiAlias(antiAlias);
+                mAmPmPaint.setAntiAlias(antiAlias);
 
                 mColonPaint.setAntiAlias(antiAlias);
                 mCommaPaint.setAntiAlias(antiAlias);
@@ -472,6 +481,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                 mLowTemp.setAlpha(alpha);
                 mHighTemp.setAlpha(alpha);
                 mMinutePaint.setAlpha(alpha);
+                mAmPmPaint.setAlpha(alpha);
                 mColonPaint.setAlpha(alpha);
                 mCommaPaint.setAlpha(alpha);
                 mLowTemp.setAlpha(alpha);
@@ -523,12 +533,26 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
 
             // Draw the hours.
-            float x = mXOffset;
+            float x;
+            if (mTimeType) {
+                x = mXOffset;
+            } else {
+                x = mXOffset - 50;
+            }
+
             String hourString;
+            if (mTimeType) {
 
                 hourString = formatTwoDigitNumber(mCalendar.get(Calendar.HOUR_OF_DAY));
+            } else {
+                int hour = mCalendar.get(Calendar.HOUR);
+                if (hour == 0) {
+                    hour = 12;
+                }
+                hourString = String.valueOf(hour);
+            }
 
-
+            Log.d("onDraw ", "Time Type = " + String.valueOf(mTimeType));
 
             canvas.drawText(hourString, x, mYOffset, mHourPaint);
             x += mHourPaint.measureText(hourString);
@@ -544,6 +568,10 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             String minuteString = formatTwoDigitNumber(mCalendar.get(Calendar.MINUTE));
             canvas.drawText(minuteString, x, mYOffset, mMinutePaint);
             x += mMinutePaint.measureText(minuteString);
+            if(!mTimeType) {
+                canvas.drawText(getAmPmString(
+                        mCalendar.get(Calendar.AM_PM)), x+10, mYOffset, mAmPmPaint);
+            }
 
 
             // In unmuted interactive mode, draw a second blinking colon followed by the seconds.
@@ -646,50 +674,60 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         @Override // DataApi.DataListener
         public void onDataChanged(DataEventBuffer dataEvents) {
             Log.d(TAG, "Got to onDataChanged");
+
             for (DataEvent dataEvent : dataEvents) {
                 if (dataEvent.getType() != DataEvent.TYPE_CHANGED) {
                     continue;
                 }
-                Log.d(TAG, "Got to onDataChanged 2");
-                DataItem dataItem = dataEvent.getDataItem();
-                Log.d(TAG, "Got to onDataChanged 3" + dataItem.getUri().getPath());
+                String path = dataEvent.getDataItem().getUri().getPath();
+                if ("/sunshine/TimeType".equals(path)) {
+                    updateTimeType(DigitalWatchFaceUtil.extractTimeType(dataEvents));
+                }
+                if ("/sunshine/ActivityData".equals(path)) {
+                    Log.d(TAG, "Got to onDataChanged 2");
+                    DataItem dataItem = dataEvent.getDataItem();
+                    Log.d(TAG, "Got to onDataChanged 3" + dataItem.getUri().getPath());
 
 
-                DataMapItem dataMapItem = DataMapItem.fromDataItem(dataItem);
-                DataMap config = dataMapItem.getDataMap();
+                    DataMapItem dataMapItem = DataMapItem.fromDataItem(dataItem);
+                    DataMap config = dataMapItem.getDataMap();
+                    ArrayList<String> weatherData = new ArrayList<>();
+                    weatherData = config.getStringArrayList("WeatherData");
 
-                String weatherString = config.getString("day1");
+                    String weatherString = weatherData.get(0);
 
-                Log.d(TAG, "Got to onDataChanged 4 " + weatherString);
-                String[] wParts = weatherString.split("\\|");
-                Log.d(TAG, "Got to onDataChanged 5 " + wParts[0]);
+                    Log.d(TAG, "Got to onDataChanged 4 " + weatherString);
+                    String[] wParts = weatherString.split("\\|");
+                    Log.d(TAG, "Got to onDataChanged 5 " + wParts[0]);
 
-                mWeatherId = Integer.parseInt(wParts[0]);
-                mWeatherIcon = BitmapFactory.decodeResource(
-                        getResources(),
-                        DigitalWatchFaceUtil.getIconResourceForWeatherCondition(mWeatherId));
-                mWeatherIconScaled = Bitmap.createScaledBitmap(mWeatherIcon,85,85,true);
-                mWeatherIconScaledAmbient = DigitalWatchFaceUtil.createGrayScaleBackgroundBitmap(mWeatherIconScaled);
+                    mWeatherId = Integer.parseInt(wParts[0]);
+                    mWeatherIcon = BitmapFactory.decodeResource(
+                            getResources(),
+                            DigitalWatchFaceUtil.getIconResourceForWeatherCondition(mWeatherId));
+                    mWeatherIconScaled = Bitmap.createScaledBitmap(mWeatherIcon, 85, 85, true);
+                    mWeatherIconScaledAmbient = DigitalWatchFaceUtil.createGrayScaleBackgroundBitmap(mWeatherIconScaled);
 
-                mTempHigh = wParts[1];
+                    mTempHigh = wParts[1];
 
-                mTempLow = wParts[2];
-                Log.d(TAG, "Got to onDataChanged 5 " + mWeatherId + mTempHigh + mTempLow);
-                invalidate();
+                    mTempLow = wParts[2];
+                    Log.d(TAG, "Got to onDataChanged 5 " + mWeatherId + mTempHigh + mTempLow);
+                    invalidate();
+                }
 
             }
         }
 
-        private void requestNewWeatherData() {
-            Wearable.MessageApi.sendMessage(mGoogleApiClient, "", DigitalWatchFaceUtil.NEW_WEATHERDATA, null)
-                    .setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
-                        @Override
-                        public void onResult(MessageApi.SendMessageResult sendMessageResult) {
-                            Log.d(TAG, "New weatherData:" + sendMessageResult.getStatus());
-                        }
-                    });
-
+        private void updateTimeType(final boolean timeType) {
+            mTimeType = timeType;
+            invalidate();
         }
+
+
+
+
+
+
+
 
 
     }

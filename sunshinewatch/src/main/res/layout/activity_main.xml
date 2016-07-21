@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.wearable.view.BoxInsetLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent">
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_alignParentTop="true"
+    android:background="@color/primary"
+    tools:context="com.example.rahall.sunshinewatch.app.MainActivity"
+    app:layout_box="left|bottom|right"
+   >
+
+<android.support.wearable.view.WearableListView
+    android:id="@+id/wearable_List"
+    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:layout_alignParentTop="true"
+    android:scrollbars="none"
+    android:dividerHeight="0dp"
+    >
+</android.support.wearable.view.WearableListView>
+</RelativeLayout>
+ </android.support.wearable.view.BoxInsetLayout>

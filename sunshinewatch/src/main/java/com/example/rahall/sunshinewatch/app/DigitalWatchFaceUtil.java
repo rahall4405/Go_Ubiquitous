@@ -23,17 +23,27 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.ResultCallbacks;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.common.data.FreezableUtils;
 import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
+
+import java.util.List;
 
 public final class DigitalWatchFaceUtil {
 
@@ -47,6 +57,8 @@ public final class DigitalWatchFaceUtil {
      * The path for weather request message
      */
     public static final String NEW_WEATHERDATA = "/sunshine/NewData";
+    public static final String PATH_TIME_TYPE = "/sunshine/TimeType";
+    public static final String KEY_TIME_TYPE = "timetype";
 
     /**
      * Name of the default interactive mode background color and the ambient mode background color.
@@ -135,4 +147,101 @@ public final class DigitalWatchFaceUtil {
         }
         return R.mipmap.ic_launcher;
     }
+
+    public static void requestNewWeatherData(GoogleApiClient mGoogleApiClient) {
+        Wearable.MessageApi.sendMessage(mGoogleApiClient, "", DigitalWatchFaceUtil.NEW_WEATHERDATA, null)
+                .setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
+                    @Override
+                    public void onResult(MessageApi.SendMessageResult sendMessageResult) {
+                        Log.d("Message", "New weatherData:" + sendMessageResult.getStatus());
+                    }
+                });
+
+    }
+    public static void putTimeType(GoogleApiClient googleApiClient, boolean timeType) {
+        Log.d("putTimeType","Got here timeType = " + timeType);
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(PATH_TIME_TYPE).setUrgent();
+        putDataMapRequest.getDataMap().putBoolean(KEY_TIME_TYPE, timeType);
+        putDataMapRequest.getDataMap().putLong("timestamp",System.currentTimeMillis());
+        PutDataRequest putDataReq = putDataMapRequest.asPutDataRequest();
+        Log.d("putTimeType","Got here2");
+        Wearable.DataApi.putDataItem(googleApiClient, putDataReq).setResultCallback(new ResultCallbacks<DataApi.DataItemResult>() {
+            @Override
+            public void onSuccess(@NonNull DataApi.DataItemResult dataItemResult) {
+                Log.d("Config change","Data sent successfully");
+            }
+
+            @Override
+            public void onFailure(@NonNull Status status) {
+                Log.d("Config change ","Data send failure");
+            }
+        });
+    }
+
+    public static boolean extractTimeType(DataEventBuffer dataEvents) {
+        final List<DataEvent> events = FreezableUtils
+                .freezeIterable(dataEvents);
+
+        for (DataEvent event : events) {
+            if (event.getType() != DataEvent.TYPE_CHANGED) {
+                continue;
+            }
+
+            DataItem dataItem = event.getDataItem();
+            if (!dataItem.getUri().getPath().equals(DigitalWatchFaceUtil.PATH_TIME_TYPE)) {
+                continue;
+            }
+
+            return extractTimeType(dataItem);
+        }
+
+        return false;
+    }
+
+    private static boolean extractTimeType(DataItem dataItem) {
+        if(dataItem == null) {
+            return false;
+        }
+
+        DataMapItem dataMapItem = DataMapItem.fromDataItem(dataItem);
+        DataMap config = dataMapItem.getDataMap();
+        return config.getBoolean(KEY_TIME_TYPE, true);
+    }
+    public static void fetchTimeType(final GoogleApiClient client,
+                                            final FetchTimeTypeCallback callback) {
+        Wearable.NodeApi.getLocalNode(client).setResultCallback(
+                new ResultCallback<NodeApi.GetLocalNodeResult>() {
+                    @Override
+                    public void onResult(NodeApi.GetLocalNodeResult localNodeResult) {
+                        String localNode = localNodeResult.getNode().getId();
+                        fetchTimeTypeDataItem(client, localNode, callback);
+                    }
+                }
+        );
+    }
+    public interface FetchTimeTypeCallback {
+        void onTimeTypeFetched(boolean TimeType);
+    }
+    private static void fetchTimeTypeDataItem(GoogleApiClient client, String localNode,
+                                                     final FetchTimeTypeCallback callback) {
+        Uri uri = new Uri.Builder()
+                .scheme("wear")
+                .path(PATH_TIME_TYPE)
+                .authority(localNode)
+                .build();
+
+        Wearable.DataApi.getDataItem(client, uri)
+                .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                    @Override
+                    public void onResult(DataApi.DataItemResult dataItemResult) {
+                        boolean TimeType = extractTimeType(dataItemResult.getDataItem());
+                        callback.onTimeTypeFetched(TimeType);
+                    }
+                });
+    }
+
 }
+
+
+
+
