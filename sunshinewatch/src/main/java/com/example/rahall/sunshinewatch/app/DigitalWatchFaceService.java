@@ -88,6 +88,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
      * Update rate in milliseconds for mute mode. We update every minute, like in ambient mode.
      */
     private static final long MUTE_UPDATE_RATE_MS = TimeUnit.MINUTES.toMillis(1);
+    public static final String KEY_BACKGROUND = "background";
 
     @Override
     public Engine onCreateEngine() {
@@ -655,6 +656,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                 Log.d(TAG, "onConnected: " + connectionHint);
 
             Wearable.DataApi.addListener(mGoogleApiClient, this);
+
         }
 
         @Override
@@ -683,6 +685,18 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                 if ("/sunshine/TimeType".equals(path)) {
                     updateTimeType(DigitalWatchFaceUtil.extractTimeType(dataEvents));
                 }
+                if (path.equals(
+                        DigitalWatchFaceUtil.PATH_WITH_FEATURE)) {
+                    DataItem dataItem = dataEvent.getDataItem();
+                    DataMapItem dataMapItem = DataMapItem.fromDataItem(dataItem);
+                    DataMap config = dataMapItem.getDataMap();
+                    setInteractiveBackgroundColor(config.getInt(KEY_BACKGROUND));
+                   invalidate();
+                }
+
+
+
+
                 if ("/sunshine/ActivityData".equals(path)) {
                     Log.d(TAG, "Got to onDataChanged 2");
                     DataItem dataItem = dataEvent.getDataItem();
@@ -722,13 +736,66 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             invalidate();
         }
 
+        private void addIntKeyIfMissing(DataMap config, String key, int color) {
+            if (!config.containsKey(key)) {
+                config.putInt(key, color);
+            }
+        }
+
+        private void setDefaultValuesForMissingConfigKeys(DataMap config) {
+            addIntKeyIfMissing(config, DigitalWatchFaceUtil.KEY_BACKGROUND_COLOR,
+                    DigitalWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_BACKGROUND);
+
+        }
+
+        private void updateUiForConfigDataMap(final DataMap config) {
+            boolean uiUpdated = false;
+            for (String configKey : config.keySet()) {
+                if (!config.containsKey(configKey)) {
+                    continue;
+                }
+                int color = config.getInt(configKey);
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Found watch face config key: " + configKey + " -> "
+                            + Integer.toHexString(color));
+                }
+                if (updateUiForKey(configKey, color)) {
+                    uiUpdated = true;
+                }
+            }
+            if (uiUpdated) {
+                invalidate();
+            }
+        }
 
 
 
+        /**
+         * Updates the color of a UI item according to the given {@code configKey}. Does nothing if
+         * {@code configKey} isn't recognized.
+         *
+         * @return whether UI has been updated
+         */
+        private boolean updateUiForKey(String configKey, int color) {
+            if (configKey.equals(DigitalWatchFaceUtil.KEY_BACKGROUND_COLOR)) {
+                setInteractiveBackgroundColor(color);
 
+            } else {
+                Log.w(TAG, "Ignoring unknown config key: " + configKey);
+                return false;
+            }
+            return true;
+        }
 
-
-
+        private void setInteractiveBackgroundColor(int color) {
+            mInteractiveBackgroundColor = color;
+            updatePaintIfInteractive(mBackgroundPaint, color);
+        }
+        private void updatePaintIfInteractive(Paint paint, int interactiveColor) {
+            if (!isInAmbientMode() && paint != null) {
+                paint.setColor(interactiveColor);
+            }
+        }
 
     }
 }

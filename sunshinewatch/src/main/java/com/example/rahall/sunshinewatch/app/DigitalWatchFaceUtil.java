@@ -45,10 +45,12 @@ import com.google.android.gms.wearable.Wearable;
 
 import java.util.List;
 
+//  adapted from android example wearable
+
 public final class DigitalWatchFaceUtil {
 
 
-
+    private static final String TAG = "DigitalWatchFaceUtil";
 
 
 
@@ -56,9 +58,19 @@ public final class DigitalWatchFaceUtil {
     /**
      * The path for weather request message
      */
+    /**
+     * The path for the {@link DataItem} containing {@link DigitalWatchFaceService} configuration.
+     */
+
     public static final String NEW_WEATHERDATA = "/sunshine/NewData";
     public static final String PATH_TIME_TYPE = "/sunshine/TimeType";
     public static final String KEY_TIME_TYPE = "timetype";
+    public static final String KEY_BACKGROUND = "background";
+    public static final String KEY_BACKGROUND_COLOR = "BACKGROUND_COLOR";
+    /**
+     * The path for the {@link DataItem} containing {@link DigitalWatchFaceService} configuration.
+     */
+    public static final String PATH_WITH_FEATURE = "/watch_face_config/Digital";
 
     /**
      * Name of the default interactive mode background color and the ambient mode background color.
@@ -219,6 +231,7 @@ public final class DigitalWatchFaceUtil {
                 }
         );
     }
+
     public interface FetchTimeTypeCallback {
         void onTimeTypeFetched(boolean TimeType);
     }
@@ -239,6 +252,28 @@ public final class DigitalWatchFaceUtil {
                     }
                 });
     }
+
+
+    public static void putConfigDataItem(GoogleApiClient googleApiClient, int backgroundColor) {
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(PATH_WITH_FEATURE);
+        putDataMapRequest.getDataMap().putInt(KEY_BACKGROUND, backgroundColor);
+        putDataMapRequest.getDataMap().putLong("timestamp",System.currentTimeMillis());
+        PutDataRequest putDataReq = putDataMapRequest.asPutDataRequest();
+        Wearable.DataApi.putDataItem(googleApiClient, putDataReq).setResultCallback(new ResultCallbacks<DataApi.DataItemResult>() {
+            @Override
+            public void onSuccess(@NonNull DataApi.DataItemResult dataItemResult) {
+                Log.d("Config change","Data sent successfully");
+            }
+
+            @Override
+            public void onFailure(@NonNull Status status) {
+                Log.d("Config change ","Data send failure");
+            }
+        });
+    }
+
+
+
 
 }
 

@@ -1,8 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<CheckBox
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/time_type"
-    android:text="@string/twentyfour"
-    android:layout_gravity="center"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content" />
+
+
+<android.support.wearable.view.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/content"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/config_activity_background">
+    <RelativeLayout
+        android:id="@+id/relative1"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="5dp"
+        >
+
+    <CheckBox
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="25dp"
+        android:id="@+id/time_type"
+        android:text="@string/twentyfour"
+        android:layout_marginLeft="20dp"
+        android:textColor="@color/blue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/time_type"
+        android:textSize="15sp"
+        android:textColor="@color/config_activity_header_text_color"
+        android:text="@string/digital_background_color"
+        android:fontFamily="sans-serif-condensed-light"
+
+        />
+    <android.support.wearable.view.WearableListView
+        android:id="@+id/color_picker"
+        android:layout_below="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+
+
+       />
+    </RelativeLayout>
+
+</android.support.wearable.view.BoxInsetLayout>

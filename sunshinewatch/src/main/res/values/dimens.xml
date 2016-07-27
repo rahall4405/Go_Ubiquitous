@@ -6,6 +6,7 @@
     <dimen name="digital_date_text_size_round">16dp</dimen>
     <dimen name="digital_temp_text_size">20dp</dimen>
     <dimen name="digital_temp_text_size_round">22dp</dimen>
+    <dimen name="content_padding_start">12dp</dimen>
 
     <dimen name="digital_am_pm_size">25dp</dimen>
     <dimen name="digital_am_pm_size_round">30dp</dimen>
