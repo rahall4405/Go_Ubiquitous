@@ -9,7 +9,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_alignParentTop="true"
-    android:background="@color/primary"
+    android:background="#FF1111"
     tools:context="com.example.rahall.sunshinewatch.app.MainActivity"
     app:layout_box="left|bottom|right"
    >

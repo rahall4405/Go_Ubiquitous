@@ -13,6 +13,7 @@
     <string name="twentyfour">Military Time</string>
 
     <string name="color_primary">primary</string>
+    <string name="color_primary2">#03a9f4</string>
     <string name="color_black">Black</string>
     <string name="color_blue">Blue</string>
     <string name="color_gray">Gray</string>
@@ -22,7 +23,7 @@
     <string name="color_white">White</string>
 
     <string-array name="color_array">
-        <item>@string/color_primary</item>
+        <item>@string/color_primary2</item>
         <item>@string/color_black</item>
         <item>@string/color_blue</item>
         <item>@string/color_gray</item>

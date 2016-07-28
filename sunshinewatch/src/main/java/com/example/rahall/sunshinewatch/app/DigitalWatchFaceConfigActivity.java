@@ -168,7 +168,12 @@ public class DigitalWatchFaceConfigActivity extends Activity implements
         public void onBindViewHolder(WearableListView.ViewHolder holder, int position) {
             ColorItemViewHolder colorItemViewHolder = (ColorItemViewHolder) holder;
             String colorName = mColors[position];
-            colorItemViewHolder.mColorItem.setColor(colorName);
+            if (position == 0) {
+                colorItemViewHolder.mColorItem.setColor(colorName);
+
+            } else {
+                colorItemViewHolder.mColorItem.setColor(colorName);
+            }
 
 
             RecyclerView.LayoutParams layoutParams =
@@ -277,12 +282,9 @@ public class DigitalWatchFaceConfigActivity extends Activity implements
 
         private void setColor(String colorName) {
             mLabel.setText(colorName);
-            if (colorName.equals("primary")) {
-                mColor.setCircleColor(R.color.primary);
 
-            } else {
                 mColor.setCircleColor(Color.parseColor(colorName));
-            }
+
         }
 
         private int getColor() {
