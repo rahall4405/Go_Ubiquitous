@@ -4,6 +4,7 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Bundle;
 
@@ -281,9 +282,33 @@ public class DigitalWatchFaceConfigActivity extends Activity implements
         }
 
         private void setColor(String colorName) {
-            mLabel.setText(colorName);
+            mColor.setCircleColor(Color.parseColor(colorName));
+            if (colorName.equals("#03a9f4")) {
 
-                mColor.setCircleColor(Color.parseColor(colorName));
+                mLabel.setText(getResources().getString(R.string.color_primary));
+
+            } else if (colorName.equals("#00ffff")) {
+
+                mLabel.setText(getResources().getString(R.string.aqua));
+            }
+            else if (colorName.equals("#753192")) {
+
+                mLabel.setText(getResources().getString(R.string.purple));
+            }
+            else if (colorName.equals("#FF1493")) {
+
+                mLabel.setText(getResources().getString(R.string.pink));
+            }
+            else if (colorName.equals("#FF8C00")) {
+
+                mLabel.setText(getResources().getString(R.string.orange));
+            }
+
+                else
+             {
+
+                mLabel.setText(colorName);
+            }
 
         }
 
