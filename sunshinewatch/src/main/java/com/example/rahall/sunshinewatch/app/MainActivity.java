@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.wearable.activity.WearableActivity;
 import android.support.wearable.view.WatchViewStub;
 import android.support.wearable.view.WearableListView;
 import android.util.Log;
@@ -23,11 +24,13 @@ import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
 
 import java.util.ArrayList;
 
-public class MainActivity extends Activity implements DataListener,
+public class MainActivity extends WearableActivity implements DataListener,
         ConnectionCallbacks, OnConnectionFailedListener {
 
     GoogleApiClient mGoogleApiClient;
@@ -66,7 +69,8 @@ public class MainActivity extends Activity implements DataListener,
     protected  void onResume() {
         super.onResume();
         mGoogleApiClient.connect();
-        DigitalWatchFaceUtil.requestNewWeatherData(mGoogleApiClient);
+        sendMessage();
+        //DigitalWatchFaceUtil.requestNewWeatherData(mGoogleApiClient);
     }
     @Override
     protected  void onPause() {
@@ -81,9 +85,9 @@ public class MainActivity extends Activity implements DataListener,
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         Log.d(TAG, "onConnected: " + "");
-
-        Wearable.DataApi.addListener(mGoogleApiClient, this);
         DigitalWatchFaceUtil.requestNewWeatherData(mGoogleApiClient);
+        Wearable.DataApi.addListener(mGoogleApiClient, this);
+
 
     }
 
@@ -126,6 +130,26 @@ public class MainActivity extends Activity implements DataListener,
     }
 
 
+private void sendMessage() {
+    new Thread( new Runnable() {
 
+        @Override
+        public void run() {
+            NodeApi.GetConnectedNodesResult nodes =
+                    Wearable.NodeApi.getConnectedNodes( mGoogleApiClient ).await();
+            for(Node node : nodes.getNodes()) {
+
+                Wearable.MessageApi.sendMessage(mGoogleApiClient, node.getId(), DigitalWatchFaceUtil.NEW_WEATHERDATA, null)
+                        .setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
+                            @Override
+                            public void onResult(MessageApi.SendMessageResult sendMessageResult) {
+                                Log.d("Message", "New weatherData:" + sendMessageResult.getStatus());
+
+                            }
+                        });
+            }
+        }
+    }).start();
+}
 
 }

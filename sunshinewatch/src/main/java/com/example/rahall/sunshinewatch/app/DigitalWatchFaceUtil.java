@@ -38,6 +38,7 @@ import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
@@ -160,14 +161,26 @@ public final class DigitalWatchFaceUtil {
         return R.mipmap.ic_launcher;
     }
 
-    public static void requestNewWeatherData(GoogleApiClient mGoogleApiClient) {
-        Wearable.MessageApi.sendMessage(mGoogleApiClient, "", DigitalWatchFaceUtil.NEW_WEATHERDATA, null)
-                .setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
-                    @Override
-                    public void onResult(MessageApi.SendMessageResult sendMessageResult) {
-                        Log.d("Message", "New weatherData:" + sendMessageResult.getStatus());
-                    }
-                });
+    public static void requestNewWeatherData(final GoogleApiClient mGoogleApiClient) {
+        new Thread( new Runnable() {
+
+            @Override
+            public void run() {
+                NodeApi.GetConnectedNodesResult nodes =
+                        Wearable.NodeApi.getConnectedNodes( mGoogleApiClient ).await();
+                for(Node node : nodes.getNodes()) {
+
+                    Wearable.MessageApi.sendMessage(mGoogleApiClient, node.getId(), DigitalWatchFaceUtil.NEW_WEATHERDATA, null)
+                            .setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
+                                @Override
+                                public void onResult(MessageApi.SendMessageResult sendMessageResult) {
+                                    Log.d("Message", "New weatherData:" + sendMessageResult.getStatus());
+
+                                }
+                            });
+                }
+            }
+        }).start();
 
     }
     public static void putTimeType(GoogleApiClient googleApiClient, boolean timeType) {
